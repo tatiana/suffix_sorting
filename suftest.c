@@ -1,6 +1,5 @@
 /* suftest.c
    Copyright N. Jesper Larsson 1999.
-   
    Program to test suffix sorting function. Reads a sequence of bytes from a
    file and calls suffixsort. This is the program used in the experiments in
    "Faster Suffix Sorting" by N. Jesper Larsson (jesper@cs.lth.se) and Kunihiko
@@ -14,7 +13,6 @@
    of this software.
 
    CHANGES:
-   
    1999-06-14: Fixed preprocessor conditions so that it's possible to have
    CHECK==0 and PRINT==2 simultaneously. Added to comment about PRINT==2.*/
 
@@ -65,7 +63,7 @@ int scmp3(unsigned char *p, unsigned char *q, int *l, int maxl)
 
 int main(int argc, char *argv[])
 {
-   int c, i, j, *x, *p, *pi;
+   int c, *x, *p, *pi;
    int n, k, l;
 #if COMPACT==2
    unsigned char q[UCHAR_MAX+1];
@@ -144,9 +142,9 @@ int main(int argc, char *argv[])
    for (i=0; i<n; ++i)
       s[i]=(unsigned char) (x[i]-l);
 #endif
-   
+
    suffixsort(x, p, n, k, l);
-   
+
 #if CHECK
 
    fprintf(stderr, "checking...\n");
@@ -155,11 +153,11 @@ int main(int argc, char *argv[])
          fprintf(stderr, "i %d p[i] %d p[i+1] %d\n", i, p[i], p[i+1]);
    }
    fprintf(stderr, "done.\n");
-   
+
 #endif
-   
+
 #if PRINT
-   
+
    for (i=0; i<=n; ++i) {
 #if PRINT==1
       printf("%d\n", p[i]);
@@ -181,6 +179,6 @@ int main(int argc, char *argv[])
    }
 
 #endif
-   
+
    return 0;
 }

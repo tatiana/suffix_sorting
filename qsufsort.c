@@ -74,7 +74,7 @@ static void select_sort_split(int *p, int n) {
 static int choose_pivot(int *p, int n) {
    int *pl, *pm, *pn;
    int s;
-   
+
    pm=p+(n>>1);                 /* small arrays, middle element.*/
    if (n>7) {
       pl=p;
@@ -157,7 +157,7 @@ static void sort_split(int *p, int n)
 
    Output: x is V and p is I after the initial sorting stage of the refined
    suffix sorting algorithm.*/
-      
+
 static void bucketsort(int *x, int *p, int n, int k)
 {
    int *pi, i, c, d, g;
@@ -194,7 +194,7 @@ static void bucketsort(int *x, int *p, int n, int k)
    for any symbol during transformation: q must be at least k-l; if q<=n,
    compaction is guaranteed; if k-l>n, compaction is never done; if q is
    INT_MAX, the maximum number of symbols are aggregated into one.
-   
+
    Output: Returns an integer j in the range 1...q representing the size of the
    new alphabet. If j<=n+1, the alphabet is compacted. The global variable r is
    set to the number of old symbols grouped into one. Only x[n] is 0.*/
@@ -203,7 +203,7 @@ static int transform(int *x, int *p, int n, int k, int l, int q)
 {
    int b, c, d, e, i, j, m, s;
    int *pi, *pj;
-   
+
    for (s=0, i=k-l; i; i>>=1)
       ++s;                      /* s is number of bits in old symbol.*/
    e=INT_MAX>>s;                /* e is for overflow checking.*/
@@ -259,10 +259,10 @@ void suffixsort(int *x, int *p, int n, int k, int l)
 {
    int *pi, *pk;
    int i, j, s, sl;
-   
+
    V=x;                         /* set global values.*/
    I=p;
-   
+
    if (n>=k-l) {                /* if bucketing possible,*/
       j=transform(V, I, n, k, l, n);
       bucketsort(V, I, n, j);   /* bucketsort on first r positions.*/
@@ -274,7 +274,7 @@ void suffixsort(int *x, int *p, int n, int k, int l)
       sort_split(I, n+1);       /* quicksort on first r positions.*/
    }
    h=r;                         /* number of symbols aggregated by transform.*/
-   
+
    while (*I>=-n) {
       pi=I;                     /* pi is first position of group.*/
       sl=0;                     /* sl is negated length of sorted groups.*/
@@ -299,4 +299,4 @@ void suffixsort(int *x, int *p, int n, int k, int l)
 
    for (i=0; i<=n; ++i)         /* reconstruct suffix array from inverse.*/
       I[V[i]]=i;
-}  
+}
