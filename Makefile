@@ -1,4 +1,4 @@
-build:
+build: clean
 	@gcc -c qsufsort.c -o qsufsort.o
 	@gcc -c suftest.c -o suftest.o
 	@gcc -o suftest suftest.o qsufsort.o
