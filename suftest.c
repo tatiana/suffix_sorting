@@ -30,7 +30,7 @@
 /* 0 for no printing. 1 to print suffix numbers in sorted order. 2 to print
    first MAXPRINT characters of each suffix in sorted order (makes sense only
    if the input is text and COMPACT is 0).*/
-#define PRINT 0
+#define PRINT 2
 #endif
 #ifndef MAXPRINT
 #define MAXPRINT 10
@@ -41,7 +41,7 @@
    the alphabet to the range l...k-1 that actually appears in the input. 2 to
    transform the alphabet into 1...k-1 with no gaps and minimum k, preserving
    the order.*/
-#define COMPACT 1
+#define COMPACT 0
 #endif
 
 #define MIN(a, b) ((a)<=(b) ? (a) : (b))
@@ -63,94 +63,101 @@ int scmp3(unsigned char *p, unsigned char *q, int *l, int maxl)
 
 int main(int argc, char *argv[])
 {
-   int c, *x, *p, *pi;
-   int n, k, l;
+   int current_char, i, j, *original_text, *suffix_array, *pi;
+   int file_size, max_char, min_char;
 #if COMPACT==2
-   unsigned char q[UCHAR_MAX+1];
+   unsigned char compressed_alphabet[UCHAR_MAX+1];
 #endif
 #if CHECK || PRINT==2
    unsigned char *s;
 #endif
-   char *fnam;
-   FILE *f;
+   char *filename;
+   FILE *file;
 
-   if (argc!=2) {
+   if (argc != 2) {
       fprintf(stderr, "syntax: suftest file\n");
       return 1;
    }
-   fnam=argv[1];
-   if (! (f=fopen(fnam, "rb"))) {
-      perror(fnam);
+
+   filename = argv[1];
+   if (!(file = fopen(filename, "rb"))) {
+      perror(filename);
       return 1;
    }
-   if (fseek(f, 0L, SEEK_END)) {
-      perror(fnam);
+
+   if (fseek(file, 0L, SEEK_END)) {
+      perror(filename);
       return 1;
    }
-   n=ftell(f);
-   if (n==0) {
-      fprintf(stderr, "%s: file empty\n", fnam);
+
+   file_size = ftell(file);
+   if (file_size == 0) {
+      fprintf(stderr, "%s: file empty\n", filename);
       return 0;
    }
-   p=malloc((n+1)*sizeof *p);
-   x=malloc((n+1)*sizeof *x);
-   if (! p || ! x) {
+
+   suffix_array = malloc((file_size + 1) * sizeof *suffix_array);
+   original_text = malloc((file_size + 1) * sizeof *original_text);
+   if (!suffix_array || !original_text) {
       fprintf(stderr, "malloc failed\n");
       return 1;
    }
 
 #if COMPACT==1
-   l=UCHAR_MAX;
-   k=1;
-   for (rewind(f), pi=x; pi<x+n; ++pi) {
-      *pi=c=getc(f);
-      if (c<l)
-         l=c;
-      if (c>=k)
-         k=c+1;
+   min_char = UCHAR_MAX;
+   max_char = 1;
+   // this loop iterates char by char in the file
+   for (rewind(file), pi = original_text; pi < original_text + file_size; ++pi) { // why is it using original_text?
+      *pi = current_char = getc(file);
+      if (current_char < min_char)
+         min_char = current_char;
+      if (current_char >= max_char)
+         max_char = current_char + 1;
    }
+   // min_char will store the minimum unsigned char value in the file?
+   // k will store the maximum unsigned char value + 1?
 #else
-   for (rewind(f), pi=x; pi<x+n; ++pi)
-      *pi=getc(f);
+   for (rewind(file), pi = original_text; pi < original_text + file_size; ++pi)
+      *pi = getc(file);
 #if COMPACT==0
-   l=0;
-   k=UCHAR_MAX+1;
+   min_char = 0;
+   max_char = UCHAR_MAX + 1;
 #elif COMPACT==2
-   for (i=0; i<=UCHAR_MAX; ++i)
-      q[i]=0;
-   for (pi=x; pi<x+n; ++pi)
-      q[*pi]=1;
-   for (i=k=0; i<=UCHAR_MAX; ++i)
-      if (q[i])
-         q[i]=k++;
-   for (pi=x; pi<x+n; ++pi)
-      *pi=q[*pi]+1;
-   l=1;
-   ++k;
+   for (i = 0; i <= UCHAR_MAX; ++i)
+      compressed_alphabet[i] = 0;
+   for (pi = original_text; pi < original_text + file_size; ++pi)
+      compressed_alphabet[*pi] = 1;
+   for (i = max_char = 0; i <= UCHAR_MAX; ++i)
+      if (compressed_alphabet[i])
+         compressed_alphabet[i] = max_char++;
+   for (pi = original_text; pi < original_text + file_size; ++pi)
+      *pi = compressed_alphabet[*pi] + 1;
+   min_char = 1;
+   ++max_char;
 #endif
 #endif
-   if (ferror(f)) {
-      perror(fnam);
+   if (ferror(file)) {
+      perror(filename);
       return 1;
    }
 #if CHECK || PRINT==2
-   s=malloc(n * sizeof *s);
+   s = malloc(file_size * sizeof *s);
    if (! s) {
       fprintf(stderr, "malloc failed\n");
       return 1;
    }
-   for (i=0; i<n; ++i)
-      s[i]=(unsigned char) (x[i]-l);
+   for (i=0; i< file_size; ++i)
+      s[i] = (unsigned char) (original_text[i] - min_char);
 #endif
 
-   suffixsort(x, p, n, k, l);
+   suffixsort(original_text, suffix_array, file_size, max_char, min_char);
 
 #if CHECK
 
    fprintf(stderr, "checking...\n");
-   for (i=0; i<n; ++i) {
-      if (scmp3(s+p[i], s+p[i+1], & j, MIN(n-p[i], n-p[i+1]))>=0)
-         fprintf(stderr, "i %d p[i] %d p[i+1] %d\n", i, p[i], p[i+1]);
+   for (i=0; i< file_size; ++i) {
+      if (scmp3(s + suffix_array[i], s + suffix_array[i + 1], & j, MIN(file_size - suffix_array[i], file_size - suffix_array[i+1])) >= 0)
+         fprintf(stderr, "i %d suffix_array[i] %d suffix_array[i+1] %d\n", i, suffix_array[i], suffix_array[i+1]);
    }
    fprintf(stderr, "done.\n");
 
@@ -158,13 +165,13 @@ int main(int argc, char *argv[])
 
 #if PRINT
 
-   for (i=0; i<=n; ++i) {
+   for (i = 0; i<= file_size; ++i) {
 #if PRINT==1
-      printf("%d\n", p[i]);
+      printf("%d\n", suffix_array[i]);
 #else
-      printf("%3d \"", p[i]);
-      for (j=p[i]; j<n && j-p[i]<MAXPRINT; ++j)
-         switch(c=s[j]) {
+      printf("%3d \"", suffix_array[i]);
+      for (j = suffix_array[i]; j < file_size && j - suffix_array[i] < MAXPRINT; ++j)
+         switch(current_char = s[j]) {
          case '\n':
             printf("\\n");
             break;
@@ -172,7 +179,7 @@ int main(int argc, char *argv[])
             printf("\\t");
             break;
          default:
-            putchar(c);
+            putchar(current_char);
          }
       printf("\"\n");
 #endif
