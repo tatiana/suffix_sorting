@@ -30,7 +30,7 @@
 /* 0 for no printing. 1 to print suffix numbers in sorted order. 2 to print
    first MAXPRINT characters of each suffix in sorted order (makes sense only
    if the input is text and COMPACT is 0).*/
-#define PRINT 2
+#define PRINT 0
 #endif
 #ifndef MAXPRINT
 #define MAXPRINT 10
@@ -41,7 +41,7 @@
    the alphabet to the range l...k-1 that actually appears in the input. 2 to
    transform the alphabet into 1...k-1 with no gaps and minimum k, preserving
    the order.*/
-#define COMPACT 0
+#define COMPACT 2
 #endif
 
 #define MIN(a, b) ((a)<=(b) ? (a) : (b))
@@ -103,19 +103,19 @@ int main(int argc, char *argv[])
       return 1;
    }
 
+// TODO: Remove if s that are not used
+
 #if COMPACT==1
    min_char = UCHAR_MAX;
    max_char = 1;
-   // this loop iterates char by char in the file
-   for (rewind(file), pi = original_text; pi < original_text + file_size; ++pi) { // why is it using original_text?
+   // TODO: optimize
+   for (rewind(file), pi = original_text; pi < original_text + file_size; ++pi) {
       *pi = current_char = getc(file);
       if (current_char < min_char)
          min_char = current_char;
       if (current_char >= max_char)
          max_char = current_char + 1;
    }
-   // min_char will store the minimum unsigned char value in the file?
-   // k will store the maximum unsigned char value + 1?
 #else
    for (rewind(file), pi = original_text; pi < original_text + file_size; ++pi)
       *pi = getc(file);

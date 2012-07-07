@@ -13,31 +13,31 @@
 
 #include <limits.h>
 
-static int *I,                  /* group array, ultimately suffix array.*/
-   *V,                          /* inverse array, ultimately inverse of I.*/
+static int *GROUP_ARRAY, // end: store the suffix array
+   *INVERSE_ARRAY, // begin: original text; end: inverse of GROUP_ARRAY
    r,                           /* number of symbols aggregated by transform.*/
    h;                           /* length of already-sorted prefixes.*/
 
-#define KEY(p)          (V[*(p)+(h)])
+#define KEY(p)          (INVERSE_ARRAY[*(p)+(h)])
 #define SWAP(p, q)      (tmp=*(p), *(p)=*(q), *(q)=tmp)
 #define MED3(a, b, c)   (KEY(a)<KEY(b) ?                        \
         (KEY(b)<KEY(c) ? (b) : KEY(a)<KEY(c) ? (c) : (a))       \
         : (KEY(b)>KEY(c) ? (b) : KEY(a)>KEY(c) ? (c) : (a)))
 
 /* Subroutine for select_sort_split and sort_split. Sets group numbers for a
-   group whose lowest position in I is pl and highest position is pm.*/
+   group whose lowest position in GROUP_ARRAY is pl and highest position is pm.*/
 
 static void update_group(int *pl, int *pm)
 {
    int g;
 
-   g=pm-I;                      /* group number.*/
-   V[*pl]=g;                    /* update group number of first position.*/
+   g = pm - GROUP_ARRAY;                      /* group number.*/
+   INVERSE_ARRAY[*pl]=g;                    /* update group number of first position.*/
    if (pl==pm)
       *pl=-1;                   /* one element, sorted group.*/
    else
       do                        /* more than one element, unsorted group.*/
-         V[*++pl]=g;            /* update group numbers.*/
+         INVERSE_ARRAY[*++pl]=g;            /* update group numbers.*/
       while (pl<pm);
 }
 
@@ -64,7 +64,7 @@ static void select_sort_split(int *p, int n) {
       pa=pb;                    /* continue sorting rest of the subarray.*/
    }
    if (pa==pn) {                /* check if last part is single element.*/
-      V[*pa]=pa-I;
+      INVERSE_ARRAY[*pa] = pa - GROUP_ARRAY;
       *pa=-1;                   /* sorted group.*/
    }
 }
@@ -155,7 +155,7 @@ static void sort_split(int *p, int n)
    at least once. x[n] is 0. (This is the corresponding output of transform.) k
    must be at most n+1. p is array of size n+1 whose contents are disregarded.
 
-   Output: x is V and p is I after the initial sorting stage of the refined
+   Output: x is INVERSE_ARRAY and p is GROUP_ARRAY after the initial sorting stage of the refined
    suffix sorting algorithm.*/
 
 static void bucketsort(int *x, int *p, int n, int k)
@@ -199,6 +199,7 @@ static void bucketsort(int *x, int *p, int n, int k)
    new alphabet. If j<=n+1, the alphabet is compacted. The global variable r is
    set to the number of old symbols grouped into one. Only x[n] is 0.*/
 
+//transform(INVERSE_ARRAY, GROUP_ARRAY, file_size, max_char, min_char, file_size)
 static int transform(int *x, int *p, int n, int k, int l, int q)
 {
    int b, c, d, e, i, j, m, s;
@@ -255,28 +256,30 @@ static int transform(int *x, int *p, int n, int k, int l, int q)
    contents of x[n] is disregarded, the n-th symbol being regarded as
    end-of-string smaller than all other symbols.*/
 
-void suffixsort(int *x, int *p, int n, int k, int l)
+void suffixsort(int *original_text, int *suffix_array, int file_size, int max_char, int min_char)
 {
    int *pi, *pk;
    int i, j, s, sl;
 
-   V=x;                         /* set global values.*/
-   I=p;
+   INVERSE_ARRAY = original_text;
+   GROUP_ARRAY = suffix_array;
 
-   if (n>=k-l) {                /* if bucketing possible,*/
-      j=transform(V, I, n, k, l, n);
-      bucketsort(V, I, n, j);   /* bucketsort on first r positions.*/
-   } else {
-      transform(V, I, n, k, l, INT_MAX);
-      for (i=0; i<=n; ++i)
-         I[i]=i;                /* initialize I with suffix numbers.*/
+   if (file_size >= max_char - min_char) {                /* if bucketing possible,*/
+      j = transform(INVERSE_ARRAY, GROUP_ARRAY, file_size, max_char, min_char, file_size);
+      bucketsort(INVERSE_ARRAY, GROUP_ARRAY, file_size, j);   /* bucketsort on first r positions.*/
+   }
+   else
+   {
+      transform(INVERSE_ARRAY, GROUP_ARRAY, file_size, max_char, min_char, INT_MAX);
+      for (i=0; i<=file_size; ++i)
+         GROUP_ARRAY[i]=i;                /* initialize GROUP_ARRAY with suffix numbers.*/
       h=0;
-      sort_split(I, n+1);       /* quicksort on first r positions.*/
+      sort_split(GROUP_ARRAY, file_size + 1);       /* quicksort on first r positions.*/
    }
    h=r;                         /* number of symbols aggregated by transform.*/
 
-   while (*I>=-n) {
-      pi=I;                     /* pi is first position of group.*/
+   while (*GROUP_ARRAY >= -file_size) {
+      pi = GROUP_ARRAY;                     /* pi is first position of group.*/
       sl=0;                     /* sl is negated length of sorted groups.*/
       do {
          if ((s=*pi)<0) {
@@ -287,16 +290,16 @@ void suffixsort(int *x, int *p, int n, int k, int l)
                *(pi+sl)=sl;     /* combine sorted groups before pi.*/
                sl=0;
             }
-            pk=I+V[s]+1;        /* pk-1 is last position of unsorted group.*/
+            pk = GROUP_ARRAY + INVERSE_ARRAY[s]+1;        /* pk-1 is last position of unsorted group.*/
             sort_split(pi, pk-pi);
             pi=pk;              /* next group.*/
          }
-      } while (pi<=I+n);
+      } while (pi <= GROUP_ARRAY + file_size);
       if (sl)                   /* if the array ends with a sorted group.*/
-         *(pi+sl)=sl;           /* combine sorted groups at end of I.*/
+         *(pi+sl)=sl;           /* combine sorted groups at end of GROUP_ARRAY.*/
       h=2*h;                    /* double sorted-depth.*/
    }
 
-   for (i=0; i<=n; ++i)         /* reconstruct suffix array from inverse.*/
-      I[V[i]]=i;
+   for (i=0; i<=file_size; ++i)         /* reconstruct suffix array from inverse.*/
+      GROUP_ARRAY[INVERSE_ARRAY[i]]=i;
 }
