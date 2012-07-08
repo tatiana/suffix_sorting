@@ -215,8 +215,10 @@ static int transform(int *original_text, int *p, int original_text_size, int max
    b = 0;
    max_char_new_alphabet = 0;
    for (i = 0; i < original_text_size; ++i) {
+      if (max_char_new_alphabet > overflow)
+         break;
       c = max_char_new_alphabet << n_bits_old_alphabet | (max_char - min_char);
-      if (!(max_char_new_alphabet <= overflow && c <= max_char_limit))
+      if (c > max_char_limit)
          break;
       b = b << n_bits_old_alphabet | (original_text[i] - min_char + 1);        /* b is start of x in chunk alphabet.*/
       max_char_new_alphabet = c;
