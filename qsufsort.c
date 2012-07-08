@@ -205,14 +205,17 @@ static int transform(int *original_text, int *p, int original_text_size, int max
    int b, c, max_char_new_alphabet, overflow, i, size_new_alphabet, m, n_bits_old_alphabet;
    int *pi, *pj;
 
+   // find highest bit set, based on the range of chars
    for (n_bits_old_alphabet = 0, i = max_char - min_char; i; i >>= 1)
       ++ n_bits_old_alphabet;
 
-   overflow = INT_MAX >> n_bits_old_alphabet;
-   for (b = max_char_new_alphabet = n_aggregated_chars = 0; n_aggregated_chars < original_text_size && max_char_new_alphabet <= overflow && (c = max_char_new_alphabet << n_bits_old_alphabet | (max_char - min_char)) <= max_char_limit; ++n_aggregated_chars) {
-      b = b << n_bits_old_alphabet | (original_text[n_aggregated_chars] - min_char + 1);        /* b is start of x in chunk alphabet.*/
+   overflow = INT_MAX >> n_bits_old_alphabet; // limits the new alphabet size
+   // walk over the input array
+   for (b = max_char_new_alphabet = i = 0; i < original_text_size && max_char_new_alphabet <= overflow && (c = max_char_new_alphabet << n_bits_old_alphabet | (max_char - min_char)) <= max_char_limit; ++i) {
+      b = b << n_bits_old_alphabet | (original_text[i] - min_char + 1);        /* b is start of x in chunk alphabet.*/
       max_char_new_alphabet = c;
    }
+   n_aggregated_chars = i;
    m = (1 << (n_aggregated_chars - 1) * n_bits_old_alphabet) - 1;            /* m masks off top old symbol from chunk.*/
    original_text[original_text_size] = min_char - 1;  // emulate zero terminator
    if (max_char_new_alphabet <= original_text_size) {                  /* if bucketing possible, compact alphabet.*/
