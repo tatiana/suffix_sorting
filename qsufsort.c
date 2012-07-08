@@ -13,31 +13,31 @@
 
 #include <limits.h>
 
-static int *ARRAY_BUFFER,  // end: store the suffix array
-   *TEXT_BUFFER,  // begin: original text; end: inverse of ARRAY_BUFFER
+static int *array_buffer,  // end: store the suffix array
+   *text_buffer,  // begin: original text; end: inverse of array_buffer
    n_aggregated_chars, // number of symbols aggregated by transform
    n_sorted_prefixes;  // length of already-sorted prefixes.
 
-#define KEY(p)          (TEXT_BUFFER[*(p)+(n_sorted_prefixes)])
+#define KEY(p)          (text_buffer[*(p)+(n_sorted_prefixes)])
 #define SWAP(p, q)      (tmp=*(p), *(p)=*(q), *(q)=tmp)
 #define MED3(a, b, c)   (KEY(a)<KEY(b) ?                        \
         (KEY(b)<KEY(c) ? (b) : KEY(a)<KEY(c) ? (c) : (a))       \
         : (KEY(b)>KEY(c) ? (b) : KEY(a)>KEY(c) ? (c) : (a)))
 
 /* Subroutine for select_sort_split and sort_split. Sets group numbers for a
-   group whose lowest position in ARRAY_BUFFER is pl and highest position is pm.*/
+   group whose lowest position in array_buffer is pl and highest position is pm.*/
 
 static void update_group(int *pl, int *pm)
 {
    int g;
 
-   g = pm - ARRAY_BUFFER;                      /* group number.*/
-   TEXT_BUFFER[*pl]=g;                    /* update group number of first position.*/
+   g = pm - array_buffer;                      /* group number.*/
+   text_buffer[*pl]=g;                    /* update group number of first position.*/
    if (pl==pm)
       *pl=-1;                   /* one element, sorted group.*/
    else
       do                        /* more than one element, unsorted group.*/
-         TEXT_BUFFER[*++pl]=g;            /* update group numbers.*/
+         text_buffer[*++pl]=g;            /* update group numbers.*/
       while (pl<pm);
 }
 
@@ -64,7 +64,7 @@ static void select_sort_split(int *p, int n) {
       pa=pb;                    /* continue sorting rest of the subarray.*/
    }
    if (pa==pn) {                /* check if last part is single element.*/
-      TEXT_BUFFER[*pa] = pa - ARRAY_BUFFER;
+      text_buffer[*pa] = pa - array_buffer;
       *pa=-1;                   /* sorted group.*/
    }
 }
@@ -155,7 +155,7 @@ static void sort_split(int *p, int n)
    at least once. x[n] is 0. (This is the corresponding output of transform.) k
    must be at most n+1. p is array of size n+1 whose contents are disregarded.
 
-   Output: x is TEXT_BUFFER and p is ARRAY_BUFFER after the initial sorting stage of the refined
+   Output: x is text_buffer and p is array_buffer after the initial sorting stage of the refined
    suffix sorting algorithm.*/
 
 static void bucketsort(int *x, int *p, int n, int k)
@@ -199,7 +199,7 @@ static void bucketsort(int *x, int *p, int n, int k)
    new alphabet. If j<=n+1, the alphabet is compacted. The global variable r is
    set to the number of old symbols grouped into one. Only x[n] is 0.*/
 
-//transform(TEXT_BUFFER, ARRAY_BUFFER, file_size, max_char, min_char, file_size)
+//transform(text_buffer, array_buffer, file_size, max_char, min_char, file_size)
 static int transform(int *original_text, int *p, int file_size, int max_char, int min_char, int max_char_limit)
 {
    int b, c, max_char_new_alphabet, overflow, i, size_new_alphabet, m, n_bits_old_alphabet;
@@ -262,44 +262,44 @@ void suffixsort(int *original_text, int *suffix_array, int file_size, int max_ch
    int *pi, *pk;
    int i, alphabet_size, s, sl;
 
-   TEXT_BUFFER = original_text;
-   ARRAY_BUFFER = suffix_array;
+   text_buffer = original_text;
+   array_buffer = suffix_array;
 
    if (file_size >= max_char - min_char) {  // if bucket sort makes sense, apply it
-      alphabet_size = transform(TEXT_BUFFER, ARRAY_BUFFER, file_size, max_char, min_char, file_size);
-      bucketsort(TEXT_BUFFER, ARRAY_BUFFER, file_size, alphabet_size);
+      alphabet_size = transform(text_buffer, array_buffer, file_size, max_char, min_char, file_size);
+      bucketsort(text_buffer, array_buffer, file_size, alphabet_size);
    }
    else { // otherwise, apply quicksort
-      transform(TEXT_BUFFER, ARRAY_BUFFER, file_size, max_char, min_char, INT_MAX);
+      transform(text_buffer, array_buffer, file_size, max_char, min_char, INT_MAX);
       for (i=0; i<=file_size; ++i)
-         ARRAY_BUFFER[i] = i;
+         array_buffer[i] = i;
       n_sorted_prefixes = 0;
-      sort_split(ARRAY_BUFFER, file_size + 1);  // quicksort on first n_aggregated_chars positions
+      sort_split(array_buffer, file_size + 1);  // quicksort on first n_aggregated_chars positions
    }
    n_sorted_prefixes = n_aggregated_chars;                         /* number of symbols aggregated by transform.*/
 
-   while (*ARRAY_BUFFER >= -file_size) {
-      pi = ARRAY_BUFFER;                     /* pi is first position of group.*/
+   while (*array_buffer >= -file_size) {
+      pi = array_buffer;                     /* pi is first position of group.*/
       sl=0;                     /* sl is negated length of sorted groups.*/
       do {
          if ((s=*pi)<0) {
-            pi-=s;              /* skip over sorted group.*/
-            sl+=s;              /* add negated length to sl.*/
+            pi -= s;              /* skip over sorted group.*/
+            sl += s;              /* add negated length to sl.*/
          } else {
             if (sl) {
                *(pi+sl)=sl;     /* combine sorted groups before pi.*/
                sl=0;
             }
-            pk = ARRAY_BUFFER + TEXT_BUFFER[s]+1;        /* pk-1 is last position of unsorted group.*/
+            pk = array_buffer + text_buffer[s]+1;        /* pk-1 is last position of unsorted group.*/
             sort_split(pi, pk-pi);
             pi=pk;              /* next group.*/
          }
-      } while (pi <= ARRAY_BUFFER + file_size);
+      } while (pi <= array_buffer + file_size);
       if (sl)                   /* if the array ends with a sorted group.*/
-         *(pi+sl)=sl;           /* combine sorted groups at end of ARRAY_BUFFER.*/
+         *(pi+sl)=sl;           /* combine sorted groups at end of array_buffer.*/
       n_sorted_prefixes = 2 * n_sorted_prefixes;
    }
 
    for (i=0; i<=file_size; ++i)         /* reconstruct suffix array from inverse.*/
-      ARRAY_BUFFER[TEXT_BUFFER[i]]=i;
+      array_buffer[text_buffer[i]] = i;
 }
