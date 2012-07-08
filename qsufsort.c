@@ -183,21 +183,21 @@ static void bucketsort(int *x, int *p, int n, int k)
    }
 }
 
-/* Transforms the alphabet of x by attempting to aggregate several symbols into
-   one, while preserving the suffix order of x. The alphabet may also be
-   compacted, so that x on output comprises all integers of the new alphabet
+/* Transforms the alphabet of original_text by attempting to aggregate several symbols into
+   one, while preserving the suffix order of original_text. The alphabet may also be
+   compacted, so that original_text on output comprises all integers of the new alphabet
    with no skipped numbers.
 
-   Input: x is an array of size n+1 whose first n elements are positive
-   integers in the range l...k-1. p is array of size n+1, used for temporary
-   storage. q controls aggregation and compaction by defining the maximum value
-   for any symbol during transformation: q must be at least k-l; if q<=n,
-   compaction is guaranteed; if k-l>n, compaction is never done; if q is
+   Input: original_text is an array of size original_text_size+1 whose first original_text_size elements are positive
+   integers in the range min_char...max_char-1. p is array of size original_text_size+1, used for temporary
+   storage. max_char_limit controls aggregation and compaction by defining the maximum value
+   for any symbol during transformation: max_char_limit must be at least max_char-l; if max_char_limit <= original_text_size,
+   compaction is guaranteed; if max_char-min_char>original_text_size, compaction is never done; if max_char_limit is
    INT_MAX, the maximum number of symbols are aggregated into one.
 
-   Output: Returns an integer j in the range 1...q representing the size of the
-   new alphabet. If j<=n+1, the alphabet is compacted. The global variable r is
-   set to the number of old symbols grouped into one. Only x[n] is 0.*/
+   Output: Returns an integer size_new_alphabet in the range 1...max_char_limit representing the size of the
+   new alphabet. If size_new_alphabet <= original_text_size+1, the alphabet is compacted. The global variable r is
+   set to the number of old symbols grouped into one. Only original_text[original_text_size] is 0.*/
 
 //transform(text_buffer, array_buffer, original_text_size, max_char, min_char, original_text_size)
 static int transform(int *original_text, int *p, int original_text_size, int max_char, int min_char, int max_char_limit)
