@@ -199,8 +199,8 @@ static void bucketsort(int *x, int *p, int n, int k)
    new alphabet. If j<=n+1, the alphabet is compacted. The global variable r is
    set to the number of old symbols grouped into one. Only x[n] is 0.*/
 
-//transform(text_buffer, array_buffer, file_size, max_char, min_char, file_size)
-static int transform(int *original_text, int *p, int file_size, int max_char, int min_char, int max_char_limit)
+//transform(text_buffer, array_buffer, original_text_size, max_char, min_char, original_text_size)
+static int transform(int *original_text, int *p, int original_text_size, int max_char, int min_char, int max_char_limit)
 {
    int b, c, max_char_new_alphabet, overflow, i, size_new_alphabet, m, n_bits_old_alphabet;
    int *pi, *pj;
@@ -209,16 +209,16 @@ static int transform(int *original_text, int *p, int file_size, int max_char, in
       ++ n_bits_old_alphabet;
 
    overflow = INT_MAX >> n_bits_old_alphabet;
-   for (b = max_char_new_alphabet = n_aggregated_chars = 0; n_aggregated_chars < file_size && max_char_new_alphabet <= overflow && (c = max_char_new_alphabet << n_bits_old_alphabet | (max_char - min_char)) <= max_char_limit; ++n_aggregated_chars) {
+   for (b = max_char_new_alphabet = n_aggregated_chars = 0; n_aggregated_chars < original_text_size && max_char_new_alphabet <= overflow && (c = max_char_new_alphabet << n_bits_old_alphabet | (max_char - min_char)) <= max_char_limit; ++n_aggregated_chars) {
       b = b << n_bits_old_alphabet | (original_text[n_aggregated_chars] - min_char + 1);        /* b is start of x in chunk alphabet.*/
       max_char_new_alphabet = c;
    }
    m = (1 << (n_aggregated_chars - 1) * n_bits_old_alphabet) - 1;            /* m masks off top old symbol from chunk.*/
-   original_text[file_size] = min_char - 1;  // emulate zero terminator
-   if (max_char_new_alphabet <= file_size) {                  /* if bucketing possible, compact alphabet.*/
+   original_text[original_text_size] = min_char - 1;  // emulate zero terminator
+   if (max_char_new_alphabet <= original_text_size) {                  /* if bucketing possible, compact alphabet.*/
       for (pi = p; pi <= p + max_char_new_alphabet; ++pi)
          *pi = 0;                 /* zero transformation table.*/
-      for (pi = original_text + n_aggregated_chars, c = b; pi <= original_text + file_size; ++pi) {
+      for (pi = original_text + n_aggregated_chars, c = b; pi <= original_text + original_text_size; ++pi) {
          p[c] = 1;                /* mark used chunk symbol.*/
          c = (c & m) << n_bits_old_alphabet | (*pi - min_char + 1);  /* shift in next old symbol in chunk.*/
       }
@@ -229,26 +229,26 @@ static int transform(int *original_text, int *p, int file_size, int max_char, in
       for (pi = p, size_new_alphabet = 1; pi <= p + max_char_new_alphabet; ++pi)
          if (*pi)
             *pi = size_new_alphabet ++;
-      for (pi = original_text, pj= original_text + n_aggregated_chars, c=b; pj <= original_text + file_size; ++pi, ++pj) {
+      for (pi = original_text, pj= original_text + n_aggregated_chars, c=b; pj <= original_text + original_text_size; ++pi, ++pj) {
          *pi = p[c];              /* transform to new alphabet.*/
          c = (c&m) << n_bits_old_alphabet | (*pj - min_char + 1);  /* shift in next old symbol in chunk.*/
       }
-      while (pi < original_text + file_size) {          /* handle last r-1 positions.*/
+      while (pi < original_text + original_text_size) {          /* handle last r-1 positions.*/
          *pi++ = p[c];            /* transform to new alphabet.*/
          c = (c & m)<< n_bits_old_alphabet;            /* shift right-end zero in chunk.*/
       }
    } else {                     /* bucketing not possible, don't compact.*/
-      for (pi = original_text, pj = original_text + n_aggregated_chars, c=b; pj <= original_text + file_size; ++pi, ++pj) {
+      for (pi = original_text, pj = original_text + n_aggregated_chars, c=b; pj <= original_text + original_text_size; ++pi, ++pj) {
          *pi=c;                 /* transform to new alphabet.*/
          c = (c & m) << n_bits_old_alphabet | (*pj - min_char + 1);  /* shift in next old symbol in chunk.*/
       }
-      while (pi < original_text + file_size) {          /* handle last r-1 positions.*/
+      while (pi < original_text + original_text_size) {          /* handle last r-1 positions.*/
          *pi ++= c;               /* transform to new alphabet.*/
          c = (c & m) << n_bits_old_alphabet;            /* shift right-end zero in chunk.*/
       }
       size_new_alphabet = max_char_new_alphabet + 1;
    }
-   original_text[file_size] = 0;                      /* end-of-string symbol is zero.*/
+   original_text[original_text_size] = 0;                      /* end-of-string symbol is zero.*/
    return size_new_alphabet;
 }
 
@@ -257,7 +257,7 @@ static int transform(int *original_text, int *p, int file_size, int max_char, in
    contents of x[n] is disregarded, the n-th symbol being regarded as
    end-of-string smaller than all other symbols.*/
 
-void suffixsort(int *original_text, int *suffix_array, int file_size, int max_char, int min_char)
+void suffixsort(int *original_text, int *suffix_array, int original_text_size, int max_char, int min_char)
 {
    int *pi, *pk;
    int i, alphabet_size, s, sl;
@@ -265,20 +265,20 @@ void suffixsort(int *original_text, int *suffix_array, int file_size, int max_ch
    text_buffer = original_text;
    array_buffer = suffix_array;
 
-   if (file_size >= max_char - min_char) {  // if bucket sort makes sense, apply it
-      alphabet_size = transform(text_buffer, array_buffer, file_size, max_char, min_char, file_size);
-      bucketsort(text_buffer, array_buffer, file_size, alphabet_size);
+   if (original_text_size >= max_char - min_char) {  // if bucket sort makes sense, apply it
+      alphabet_size = transform(text_buffer, array_buffer, original_text_size, max_char, min_char, original_text_size);
+      bucketsort(text_buffer, array_buffer, original_text_size, alphabet_size);
    }
    else { // otherwise, apply quicksort
-      transform(text_buffer, array_buffer, file_size, max_char, min_char, INT_MAX);
-      for (i=0; i<=file_size; ++i)
+      transform(text_buffer, array_buffer, original_text_size, max_char, min_char, INT_MAX);
+      for (i=0; i<=original_text_size; ++i)
          array_buffer[i] = i;
       n_sorted_prefixes = 0;
-      sort_split(array_buffer, file_size + 1);  // quicksort on first n_aggregated_chars positions
+      sort_split(array_buffer, original_text_size + 1);  // quicksort on first n_aggregated_chars positions
    }
    n_sorted_prefixes = n_aggregated_chars;                         /* number of symbols aggregated by transform.*/
 
-   while (*array_buffer >= -file_size) {
+   while (*array_buffer >= -original_text_size) {
       pi = array_buffer;                     /* pi is first position of group.*/
       sl=0;                     /* sl is negated length of sorted groups.*/
       do {
@@ -294,12 +294,12 @@ void suffixsort(int *original_text, int *suffix_array, int file_size, int max_ch
             sort_split(pi, pk-pi);
             pi=pk;              /* next group.*/
          }
-      } while (pi <= array_buffer + file_size);
+      } while (pi <= array_buffer + original_text_size);
       if (sl)                   /* if the array ends with a sorted group.*/
          *(pi+sl)=sl;           /* combine sorted groups at end of array_buffer.*/
       n_sorted_prefixes = 2 * n_sorted_prefixes;
    }
 
-   for (i=0; i<=file_size; ++i)         /* reconstruct suffix array from inverse.*/
+   for (i=0; i<=original_text_size; ++i)         /* reconstruct suffix array from inverse.*/
       array_buffer[text_buffer[i]] = i;
 }
